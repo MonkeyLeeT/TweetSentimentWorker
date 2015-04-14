@@ -1,6 +1,5 @@
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -50,64 +49,42 @@ public class process extends HttpServlet {
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         try {
-
-            // Parse the work to be done from the POST request body.
+			PropertiesCredentials propertiesCredentials = new PropertiesCredentials(Thread.currentThread().getContextClassLoader().getResourceAsStream("credentials.ini"));
+			SNS sns = new SNS(propertiesCredentials);
         	TweetRequest tweetRequest = TweetRequest.fromJson(request.getInputStream());
-
         	String sentiment = getSentiment(tweetRequest.getText());
         	SentimentResult sentimentResult = gson.fromJson(sentiment, SentimentResult.class);
-        	if (sentimentResult.status.equals("OK")) {
-        		getRds().update(tweetRequest.getId_str(), sentimentResult.docSentiment.score);
-        		// Set score
-    			tweetRequest.setSentiment(sentimentResult.docSentiment.score);
-    			// Send to SNS
-    			System.out.println("Send to sns: " + tweetRequest.getText());
-    			PropertiesCredentials propertiesCredentials = new PropertiesCredentials(Thread.currentThread().getContextClassLoader().getResourceAsStream("AwsCredentials.properties"));
-    			SNS sns = new SNS(propertiesCredentials);
-    			sns.publish(gson.toJson(tweetRequest));
-    			response.setStatus(200);
-        	} else {
-        		double sentimentValue = Math.random() * 2 - 1;
-        		getRds().update(tweetRequest.getId_str(), sentimentValue);
-        		tweetRequest.setSentiment(sentimentValue);
-        		System.out.println("Failed to get sentiment." + sentimentResult.statusInfo);
-    			// Send to SNS
-    			System.out.println("Send to sns: " + tweetRequest.getText());
-    			PropertiesCredentials propertiesCredentials = new PropertiesCredentials(Thread.currentThread().getContextClassLoader().getResourceAsStream("AwsCredentials.properties"));
-    			SNS sns = new SNS(propertiesCredentials);
-    			sns.publish(gson.toJson(tweetRequest));
-        		response.setStatus(200);
-        	} 	
+        	double sentimentValue = Math.random() * 2 - 1;
         	
+        	if (sentimentResult.status.equals("OK"))
+        		sentimentValue = sentimentResult.docSentiment.score;
+        	else
+        		System.out.println("Failed to get sentiment." + sentimentResult.statusInfo);	
+        	
+    		getRds().update(tweetRequest.getId_str(), sentimentValue);
+			tweetRequest.setSentiment(sentimentValue);
+			System.out.println("Send to sns: " + tweetRequest.getText());
+			sns.publish(gson.toJson(tweetRequest));
+			response.setStatus(200);
         } catch (JsonParseException e) {
-        	response.setStatus(200);
         	System.err.println("Error in parsing json string.");
+            e.printStackTrace(System.out);
+			response.setStatus(201);
         } catch (RuntimeException exception) {
-            
-            // Signal to beanstalk that something went wrong while processing
-            // the request. The work request will be retried several times in
-            // case the failure was transient (eg a temporary network issue
-            // when writing to Amazon S3).
-            
-            response.setStatus(500);
-            try (PrintWriter writer =
-                 new PrintWriter(response.getOutputStream())) {
-                exception.printStackTrace(writer);
-            }
+                exception.printStackTrace(System.out);
+    			response.setStatus(500);
+    			}
         }
-	}
 	
 	private String getSentiment(String text) throws ClientProtocolException, IOException {
         HttpClient httpclient = HttpClients.createDefault();
         HttpPost httppost = new HttpPost("http://access.alchemyapi.com/calls/text/TextGetTextSentiment");
-
-        // Request parameters and other properties.
         List<NameValuePair> params = new ArrayList<NameValuePair>(3);
         String apiKey = getApiKey();
+        
         params.add(new BasicNameValuePair("apikey", apiKey));
         params.add(new BasicNameValuePair("text", text));
         params.add(new BasicNameValuePair("outputMode", "json"));
-
         httppost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
 
         //Execute and get the response.
@@ -117,7 +94,6 @@ public class process extends HttpServlet {
         if (entity != null) {
             InputStream instream = entity.getContent();
             try {
-                // do something useful
                 ret = EntityUtils.toString(entity);
             } finally {
                 instream.close();
@@ -128,7 +104,7 @@ public class process extends HttpServlet {
 	
 	@SuppressWarnings("resource")
 	private String getApiKey() {
-		InputStream password = Thread.currentThread().getContextClassLoader().getResourceAsStream("api_key.ini");
+		InputStream password = Thread.currentThread().getContextClassLoader().getResourceAsStream("apikey.ini");
         String pass = null;
         pass = new Scanner(password).next();
         return pass;

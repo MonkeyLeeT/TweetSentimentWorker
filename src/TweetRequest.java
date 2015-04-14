@@ -3,10 +3,8 @@ import java.io.InputStream;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-
 public class TweetRequest {
 	private static final ObjectMapper MAPPER = new ObjectMapper();
-	
     private String id_str;
     private String created_at;
     private String text;
@@ -15,9 +13,7 @@ public class TweetRequest {
     private double latitude;
     private double sentiment;
     
-    public static TweetRequest fromJson(final InputStream json) 
-            throws IOException {
-        
+    public static TweetRequest fromJson(final InputStream json) throws IOException {    
         return MAPPER.readValue(json, TweetRequest.class);
     }
 
@@ -68,8 +64,6 @@ public class TweetRequest {
 	public void setLatitude(double latitude) {
 		this.latitude = latitude;
 	}
-
-    
     
     public double getSentiment() {
 		return sentiment;
@@ -78,9 +72,4 @@ public class TweetRequest {
 	public void setSentiment(double sentiment) {
 		this.sentiment = sentiment;
 	}
-
-	public String toJson() throws IOException {
-        return MAPPER.writeValueAsString(this);
-    }
-    
 }
