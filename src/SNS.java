@@ -21,6 +21,6 @@ public class SNS {
 	public void publish(String msg) {
 		PublishRequest publishRequest = new PublishRequest(topicArn, msg);
 		PublishResult publishResult = sns.publish(publishRequest);
-		//System.out.println("MessageId - " + publishResult.getMessageId());
+		System.out.println("MessageId - " + publishResult.getMessageId());
 	}
 }
