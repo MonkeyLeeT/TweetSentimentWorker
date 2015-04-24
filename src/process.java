@@ -54,7 +54,7 @@ public class process extends HttpServlet {
         	TweetRequest tweetRequest = TweetRequest.fromJson(request.getInputStream());
         	String sentiment = getSentiment(tweetRequest.getText());
         	SentimentResult sentimentResult = gson.fromJson(sentiment, SentimentResult.class);
-        	double sentimentValue = Math.random() * 2 - 1;
+        	double sentimentValue = Math.random() * 1.5 - 0.5;
         	
         	if (sentimentResult.status.equals("OK"))
         		sentimentValue = sentimentResult.docSentiment.score;
